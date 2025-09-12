@@ -1,0 +1,43 @@
+html, body{
+    margin: 0;
+    padding: 0;
+}
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #ca6d49;
+    line-height: 1.65;
+    padding-bottom: 100px;
+}
+.container-satu{
+    width: 800px;
+    margin: 50px auto;
+    background-color: #fae8c0;
+    padding: 20px;
+    box-sizing: border-box;
+    display: flex;
+    border-radius: 20px;
+}
+.sidebar-satu{
+    flex: 1;
+    padding: 10px;
+    background-color: #fab51c;
+    border-radius: 20px;
+}
+.kolom-utama{
+    flex: 3;
+    padding: 10px;
+    margin: 0 20px;
+    background-color: #e49576;
+    border-radius: 20px;
+}
+.sidebar-dua{
+    flex: 1;
+    padding: 10px;
+    background-color: #fab51c;
+    border-radius: 20px;
+}
+.gambar{
+    width: 200px;
+    float: left;
+    margin-right: 10px;
+}
