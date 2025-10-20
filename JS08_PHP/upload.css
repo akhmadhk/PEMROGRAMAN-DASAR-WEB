@@ -1,0 +1,58 @@
+.upload-form-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+.file-input-container {
+    position: relative;
+    margin: 20px 0;
+}
+
+.file-input {
+    display: none;
+    /* Input file asli disembunyikan */
+}
+
+.file-label {
+    background: #3498db;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.upload-button {
+    background: #2ecc71;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0.5;
+    /* Dibuat terlihat pudar saat nonaktif */
+    transition: background-color 0.3s;
+}
+
+.upload-button:disabled {
+    background: #ccc;
+    /* Warna tombol saat nonaktif */
+    cursor: not-allowed;
+    /* Kursor berubah saat nonaktif */
+}
+
+.upload-status {
+    margin-top: 20px;
+    font-weight: bold;
+}
