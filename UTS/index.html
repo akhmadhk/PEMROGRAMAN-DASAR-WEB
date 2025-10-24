@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Login & Upload</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .auth-container {
+            max-width: 450px;
+            margin: 50px auto;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: none;
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 10px;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .dashboard-card {
+            border-radius: 15px;
+            transition: transform 0.3s;
+        }
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .uploaded-image {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        .error-message {
+            display: none;
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .success-message {
+            display: none;
+            color: #28a745;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .image-preview-container {
+            position: relative;
+            display: inline-block;
+        }
+        .remove-image {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(220, 53, 69, 0.9);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            cursor: pointer;
+        }
+        .navbar {
+            background: rgba(255,255,255,0.95) !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .loading-spinner {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3><i class="fas fa-lock"></i> Login</h3>
+            </div>
+            <div class="card-body p-4">
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" placeholder="Masukkan username">
+                        <div class="error-message" id="usernameError"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" placeholder="Masukkan password">
+                        <div class="error-message" id="passwordError"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Login Sebagai</label>
+                        <select class="form-select" id="roleSelect">
+                            <option value="admin">Admin</option>
+                            <option value="member">Member</option>
+                        </select>
+                        <div class="error-message" id="roleError"></div>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember Me</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboardPage" style="display: none;">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="#"><i class="fas fa-home"></i> Dashboard</a>
+                <div class="d-flex align-items-center">
+                    <span class="me-3">Selamat datang, <strong id="userDisplay"></strong></span>
+                    <button class="btn btn-danger" id="logoutBtn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container mt-5">
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-user"></i> Informasi User</h5>
+                            <hr>
+                            <p><strong>Username:</strong> <span id="dashUsername"></span></p>
+                            <p><strong>Role:</strong> <span id="dashRole" class="badge bg-primary"></span></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="fas fa-upload"></i> Upload Gambar</h5>
+                            <hr>
+                            <form id="uploadForm">
+                                <div class="mb-3">
+                                    <input type="file" class="form-control" id="imageUpload" accept="image/*">
+                                    <div class="error-message" id="uploadError"></div>
+                                    <div class="success-message" id="uploadSuccess"></div>
+                                </div>
+                                <button type="submit" class="btn btn-primary" id="uploadBtn">
+                                    <i class="fas fa-cloud-upload-alt"></i> Upload
+                                </button>
+                                <div class="loading-spinner" id="loadingSpinner">
+                                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <span class="ms-2">Mengupload...</span>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row" id="imageGalleryRow">
+                <div class="col-12">
+                    <div class="card dashboard-card">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-images"></i> Gambar yang Diupload
+                            </h5>
+                            <hr>
+                            <div id="imageGallery" class="d-flex flex-wrap gap-3">
+                                <div class="text-center w-100">
+                                    <p class="text-muted">Memuat gambar...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js"></script>
+    
+    <script>
+        // Data user untuk validasi
+        const users = {
+            admin: { password: 'admin123', role: 'admin' },
+            member: { password: 'member123', role: 'member' }
+        };
+
+        // Cek cookies saat halaman dimuat
+        $(document).ready(function() {
+            // Cek apakah ada session yang masih aktif
+            const loggedInUser = sessionStorage.getItem('loggedInUser');
+            const userRole = sessionStorage.getItem('userRole');
+            
+            if (loggedInUser && userRole) {
+                // Jika ada session aktif, langsung ke dashboard
+                showDashboard(loggedInUser, userRole);
+            } else {
+                // Jika tidak ada session, cek cookies remember me
+                const savedUser = Cookies.get('rememberedUser');
+                const savedRole = Cookies.get('rememberedRole');
+                const savedPassword = Cookies.get('rememberedPassword');
+                const rememberMeChecked = Cookies.get('rememberMeChecked');
+                
+                if (savedUser && savedRole) {
+                    $('#username').val(savedUser);
+                    $('#roleSelect').val(savedRole);
+                    
+                    if (savedPassword) {
+                        $('#password').val(savedPassword);
+                    }
+                    if (rememberMeChecked === 'true') {
+                        $('#rememberMe').prop('checked', true);
+                    }
+                }
+            }
+        });
+
+        // Validasi Form Login dengan jQuery
+        $('#loginForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            // Reset error messages
+            $('.error-message').hide().text('');
+            
+            const username = $('#username').val().trim();
+            const password = $('#password').val().trim();
+            const role = $('#roleSelect').val();
+            let isValid = true;
+
+            // Validasi Username
+            if (username === '') {
+                $('#usernameError').text('Username tidak boleh kosong!').show();
+                isValid = false;
+            } else if (username.length < 3) {
+                $('#usernameError').text('Username minimal 3 karakter!').show();
+                isValid = false;
+            }
+
+            // Validasi Password
+            if (password === '') {
+                $('#passwordError').text('Password tidak boleh kosong!').show();
+                isValid = false;
+            } else if (password.length < 6) {
+                $('#passwordError').text('Password minimal 6 karakter!').show();
+                isValid = false;
+            }
+
+            // Validasi Role
+            if (role === '') {
+                $('#roleError').text('Pilih role terlebih dahulu!').show();
+                isValid = false;
+            }
+
+            if (!isValid) return;
+
+            // Cek kredensial user
+            if (users[username] && users[username].password === password && users[username].role === role) {
+                // Handle Remember Me dengan Cookies
+                if ($('#rememberMe').is(':checked')) {
+                    // Simpan ke cookies dengan masa berlaku 7 hari
+                    Cookies.set('rememberedUser', username, { expires: 7 });
+                    Cookies.set('rememberedRole', role, { expires: 7 });
+                    Cookies.set('rememberedPassword', password, { expires: 7 });
+                    Cookies.set('rememberMeChecked', 'true', { expires: 7 });
+                } else {
+                    // Hapus cookies jika remember me tidak dicentang
+                    Cookies.remove('rememberedUser');
+                    Cookies.remove('rememberedRole');
+                    Cookies.remove('rememberedPassword');
+                    Cookies.remove('rememberMeChecked');
+                }
+
+                // Simpan session
+                sessionStorage.setItem('loggedInUser', username);
+                sessionStorage.setItem('userRole', role);
+
+                // Tampilkan dashboard
+                showDashboard(username, role);
+            } else {
+                $('#passwordError').text('Username, password, atau role salah!').show();
+            }
+        });
+
+        // Fungsi menampilkan dashboard
+        function showDashboard(username, role) {
+            $('#loginPage').hide();
+            $('#dashboardPage').show();
+            $('#userDisplay').text(username);
+            $('#dashUsername').text(username);
+            $('#dashRole').text(role.toUpperCase());
+            
+            // Load gambar yang sudah ada
+            loadImages();
+        }
+
+        // Validasi Form Upload dengan jQuery
+        $('#uploadForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const fileInput = $('#imageUpload')[0];
+            const file = fileInput.files[0];
+            
+            $('#uploadError').hide().text('');
+            $('#uploadSuccess').hide().text('');
+
+            // Validasi file
+            if (!file) {
+                $('#uploadError').text('Pilih gambar terlebih dahulu!').show();
+                return;
+            }
+
+            // Validasi tipe file
+            if (!file.type.startsWith('image/')) {
+                $('#uploadError').text('File harus berupa gambar!').show();
+                return;
+            }
+
+            // Validasi ukuran file (max 5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                $('#uploadError').text('Ukuran gambar maksimal 5MB!').show();
+                return;
+            }
+
+            // Upload ke server
+            uploadToServer(file);
+        });
+
+        // Fungsi upload ke server
+        function uploadToServer(file) {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('username', sessionStorage.getItem('loggedInUser'));
+
+            // Tampilkan loading
+            $('#uploadBtn').prop('disabled', true);
+            $('#loadingSpinner').show();
+
+            $.ajax({
+                url: 'upload.php',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    $('#uploadBtn').prop('disabled', false);
+                    $('#loadingSpinner').hide();
+                    
+                    if (response.success) {
+                        $('#uploadSuccess').text('Gambar berhasil diupload!').show();
+                        $('#uploadForm')[0].reset();
+                        
+                        // Reload gambar
+                        loadImages();
+                        
+                        // Hide success message after 3 seconds
+                        setTimeout(function() {
+                            $('#uploadSuccess').fadeOut();
+                        }, 3000);
+                    } else {
+                        $('#uploadError').text(response.message || 'Gagal mengupload gambar!').show();
+                    }
+                },
+                error: function() {
+                    $('#uploadBtn').prop('disabled', false);
+                    $('#loadingSpinner').hide();
+                    $('#uploadError').text('Terjadi kesalahan saat mengupload!').show();
+                }
+            });
+        }
+
+        // Fungsi load gambar dari server
+        function loadImages() {
+            $.ajax({
+                url: 'get_images.php',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        displayImages(response.images);
+                    } else {
+                        $('#imageGallery').html('<p class="text-muted text-center w-100">Belum ada gambar yang diupload</p>');
+                    }
+                },
+                error: function() {
+                    $('#imageGallery').html('<p class="text-danger text-center w-100">Gagal memuat gambar</p>');
+                }
+            });
+        }
+
+        // Fungsi menampilkan gambar
+        function displayImages(images) {
+            const gallery = $('#imageGallery');
+            const currentRole = sessionStorage.getItem('userRole');
+            gallery.empty();
+            
+            if (images && images.length > 0) {
+                images.forEach(function(image) {
+                    // Tampilkan username hanya untuk admin
+                    let uploaderInfo = '';
+                    if (currentRole === 'admin') {
+                        uploaderInfo = `<small class="text-muted">Uploader: <strong>${image.username}</strong></small><br>`;
+                    }
+                    
+                    // Tombol hapus hanya untuk admin
+                    let deleteButton = '';
+                    if (currentRole === 'admin') {
+                        deleteButton = `
+                            <button class="remove-image" onclick="removeImage('${image.filename}')">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                    }
+                    
+                    const imageHtml = `
+                        <div class="image-preview-container">
+                            <img src="uploads/${image.filename}" class="uploaded-image" style="max-width: 200px;" alt="${image.filename}">
+                            ${deleteButton}
+                            <div class="text-center mt-2">
+                                ${uploaderInfo}
+                                <small class="text-muted">${image.original_name || image.filename}</small><br>
+                                <small class="text-muted">${image.upload_date}</small>
+                            </div>
+                        </div>
+                    `;
+                    gallery.append(imageHtml);
+                });
+            } else {
+                gallery.html('<p class="text-muted text-center w-100">Belum ada gambar yang diupload</p>');
+            }
+        }
+
+        // Fungsi hapus gambar - Hanya untuk Admin
+        function removeImage(filename) {
+            // Cek role user
+            const currentRole = sessionStorage.getItem('userRole');
+            
+            // Jika bukan admin, tolak akses
+            if (currentRole !== 'admin') {
+                alert('Akses ditolak! Hanya Admin yang dapat menghapus gambar.');
+                return;
+            }
+            
+            if (confirm('Hapus gambar ini?')) {
+                $.ajax({
+                    url: 'delete_image.php',
+                    type: 'POST',
+                    data: { filename: filename },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            loadImages();
+                        } else {
+                            alert(response.message || 'Gagal menghapus gambar!');
+                        }
+                    },
+                    error: function() {
+                        alert('Terjadi kesalahan saat menghapus gambar!');
+                    }
+                });
+            }
+        }
+
+        // Logout - Dengan Fitur Cookies Aktif
+        $('#logoutBtn').on('click', function() {
+            if (confirm('Apakah Anda yakin ingin logout?')) {
+                // Clear session storage
+                sessionStorage.clear();
+                
+                // Hide dashboard dan show login page
+                $('#dashboardPage').hide();
+                $('#loginPage').show();
+                
+                // Cek apakah remember me aktif
+                const rememberMeChecked = Cookies.get('rememberMeChecked');
+                const savedUser = Cookies.get('rememberedUser');
+                const savedRole = Cookies.get('rememberedRole');
+                const savedPassword = Cookies.get('rememberedPassword');
+                
+                if (rememberMeChecked === 'true' && savedUser && savedRole) {
+                    // Jika remember me aktif, isi kembali form dengan data cookies
+                    $('#username').val(savedUser);
+                    $('#roleSelect').val(savedRole);
+                    $('#rememberMe').prop('checked', true);
+                    
+                    if (savedPassword) $('#password').val(savedPassword);
+                } else {
+                    // hapus juga cookie password kalau remember tidak aktif
+                    Cookies.remove('rememberedPassword');
+                    $('#loginForm')[0].reset();
+                }
+
+                $('#imageGallery').html('<div class="text-center w-100"><p class="text-muted">Memuat gambar...</p></div>');
+                $('#uploadForm')[0].reset();
+                $('#uploadError').hide();
+                $('#uploadSuccess').hide();
+                $('.error-message').hide().text('');
+            }
+        });
+    </script>
+</body>
+</html>
