@@ -1,75 +1,51 @@
 <?php
-header('Content-Type: application/json');
+require_once 'config.php';
 
-// Konfigurasi
-$uploadDir = 'uploads/';
-$maxFileSize = 5 * 1024 * 1024; // 5MB
-$allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-$allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-// Buat folder uploads jika belum ada
-if (!file_exists($uploadDir)) {
-    mkdir($uploadDir, 0777, true);
+// Cek apakah user sudah login
+if (!isLoggedIn()) {
+    jsonResponse(false, 'Unauthorized - Silakan login terlebih dahulu');
 }
+
+header('Content-Type: application/json');
 
 // Cek apakah ada file yang diupload
 if (!isset($_FILES['image'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Tidak ada file yang diupload'
-    ]);
-    exit;
+    jsonResponse(false, 'Tidak ada file yang diupload');
 }
 
 $file = $_FILES['image'];
-$username = isset($_POST['username']) ? $_POST['username'] : 'unknown';
+$username = getUsername();
 
 // Validasi error upload
 if ($file['error'] !== UPLOAD_ERR_OK) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Error saat mengupload file'
-    ]);
-    exit;
+    jsonResponse(false, 'Error saat mengupload file');
 }
 
 // Validasi ukuran file
-if ($file['size'] > $maxFileSize) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Ukuran file terlalu besar (maksimal 5MB)'
-    ]);
-    exit;
+if ($file['size'] > MAX_FILE_SIZE) {
+    jsonResponse(false, 'Ukuran file terlalu besar (maksimal 5MB)');
 }
 
 // Validasi tipe file
 $fileType = mime_content_type($file['tmp_name']);
-if (!in_array($fileType, $allowedTypes)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Tipe file tidak diizinkan'
-    ]);
-    exit;
+if (!in_array($fileType, ALLOWED_TYPES)) {
+    jsonResponse(false, 'Tipe file tidak diizinkan');
 }
 
 // Validasi ekstensi file
 $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-if (!in_array($fileExtension, $allowedExtensions)) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Ekstensi file tidak diizinkan'
-    ]);
-    exit;
+if (!in_array($fileExtension, ALLOWED_EXT)) {
+    jsonResponse(false, 'Ekstensi file tidak diizinkan');
 }
 
 // Generate nama file unik
 $newFileName = $username . '_' . date('YmdHis') . '_' . uniqid() . '.' . $fileExtension;
-$targetPath = $uploadDir . $newFileName;
+$targetPath = UPLOAD_DIR . $newFileName;
 
 // Pindahkan file ke folder uploads
 if (move_uploaded_file($file['tmp_name'], $targetPath)) {
     // Simpan informasi ke file JSON
-    $imagesDataFile = $uploadDir . 'images_data.json';
+    $imagesDataFile = UPLOAD_DIR . 'images_data.json';
     $imagesData = [];
     
     if (file_exists($imagesDataFile)) {
@@ -91,15 +67,10 @@ if (move_uploaded_file($file['tmp_name'], $targetPath)) {
     // Simpan ke file JSON
     file_put_contents($imagesDataFile, json_encode($imagesData, JSON_PRETTY_PRINT));
     
-    echo json_encode([
-        'success' => true,
-        'message' => 'File berhasil diupload',
+    jsonResponse(true, 'File berhasil diupload', [
         'filename' => $newFileName
     ]);
 } else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Gagal memindahkan file'
-    ]);
+    jsonResponse(false, 'Gagal memindahkan file');
 }
 ?>

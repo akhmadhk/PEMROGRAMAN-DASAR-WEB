@@ -1,29 +1,33 @@
 <?php
+require_once 'config.php';
+
+// Cek apakah user sudah login
+if (!isLoggedIn()) {
+    jsonResponse(false, 'Unauthorized - Silakan login terlebih dahulu');
+}
+
+// Cek apakah user adalah admin
+if (!isAdmin()) {
+    jsonResponse(false, 'Access denied - Hanya admin yang dapat menghapus gambar');
+}
+
 header('Content-Type: application/json');
 
-$uploadDir = 'uploads/';
-$imagesDataFile = $uploadDir . 'images_data.json';
+$imagesDataFile = UPLOAD_DIR . 'images_data.json';
 
 // Cek apakah filename ada
 if (!isset($_POST['filename'])) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Filename tidak ditemukan'
-    ]);
-    exit;
+    jsonResponse(false, 'Filename tidak ditemukan');
 }
 
-$filename = $_POST['filename'];
-$filePath = $uploadDir . $filename;
+$filename = sanitize($_POST['filename']);
 
 // Validasi filename untuk keamanan
 if (strpos($filename, '..') !== false || strpos($filename, '/') !== false) {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Filename tidak valid'
-    ]);
-    exit;
+    jsonResponse(false, 'Filename tidak valid');
 }
+
+$filePath = UPLOAD_DIR . $filename;
 
 // Hapus file fisik
 if (file_exists($filePath)) {
@@ -46,20 +50,11 @@ if (file_exists($filePath)) {
             }
         }
         
-        echo json_encode([
-            'success' => true,
-            'message' => 'Gambar berhasil dihapus'
-        ]);
+        jsonResponse(true, 'Gambar berhasil dihapus');
     } else {
-        echo json_encode([
-            'success' => false,
-            'message' => 'Gagal menghapus file'
-        ]);
+        jsonResponse(false, 'Gagal menghapus file');
     }
 } else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'File tidak ditemukan'
-    ]);
+    jsonResponse(false, 'File tidak ditemukan');
 }
 ?>

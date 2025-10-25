@@ -1,9 +1,17 @@
+<?php
+require_once 'config.php';
+
+// Cek apakah sudah login, jika ya redirect ke dashboard
+$isLoggedIn = isLoggedIn();
+$username = getUsername();
+$role = getUserRole();
+?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Login & Upload</title>
+    <title>Sistem Login & Upload - PHP Version</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -32,6 +40,7 @@
             border: none;
             padding: 10px;
             font-weight: 600;
+            transition: transform 0.2s;
         }
         .btn-primary:hover {
             transform: translateY(-2px);
@@ -40,16 +49,23 @@
         .dashboard-card {
             border-radius: 15px;
             transition: transform 0.3s;
+            height: 100%;
         }
         .dashboard-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .uploaded-image {
-            max-width: 100%;
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
             border-radius: 10px;
-            margin-top: 15px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        .uploaded-image:hover {
+            transform: scale(1.05);
         }
         .error-message {
             display: none;
@@ -66,11 +82,13 @@
         .image-preview-container {
             position: relative;
             display: inline-block;
+            width: 200px;
+            margin: 10px;
         }
         .remove-image {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 5px;
+            right: 5px;
             background: rgba(220, 53, 69, 0.9);
             color: white;
             border: none;
@@ -78,6 +96,12 @@
             width: 30px;
             height: 30px;
             cursor: pointer;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        .remove-image:hover {
+            background: rgba(220, 53, 69, 1);
+            transform: scale(1.1);
         }
         .navbar {
             background: rgba(255,255,255,0.95) !important;
@@ -87,13 +111,56 @@
             display: none;
             margin-top: 10px;
         }
+        #imageGalleryRow {
+            min-height: 400px;
+        }
+        #imageGallery {
+            min-height: 300px;
+        }
+        /* Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+        }
+        .image-modal-content {
+            margin: auto;
+            display: block;
+            max-width: 90%;
+            max-height: 90%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
     <!-- Login Page -->
-    <div id="loginPage" class="auth-container">
-        <div class="card">
+    <div id="loginPage" class="auth-container" style="display: <?php echo $isLoggedIn ? 'none' : 'block'; ?>">
+        <div class="card fade-in">
             <div class="card-header text-center">
                 <h3><i class="fas fa-lock"></i> Login</h3>
             </div>
@@ -101,24 +168,28 @@
                 <form id="loginForm">
                     <div class="mb-3">
                         <label class="form-label">Username</label>
-                        <input type="text" class="form-control" id="username" placeholder="Masukkan username">
+                        <input type="text" class="form-control" id="username" name="username" 
+                               placeholder="Masukkan username" 
+                               value="<?php echo $_COOKIE['remembered_user'] ?? ''; ?>">
                         <div class="error-message" id="usernameError"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" placeholder="Masukkan password">
+                        <input type="password" class="form-control" id="password" name="password" 
+                               placeholder="Masukkan password">
                         <div class="error-message" id="passwordError"></div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Login Sebagai</label>
-                        <select class="form-select" id="roleSelect">
-                            <option value="admin">Admin</option>
-                            <option value="member">Member</option>
+                        <select class="form-select" id="roleSelect" name="role">
+                            <option value="admin" <?php echo (isset($_COOKIE['remembered_role']) && $_COOKIE['remembered_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                            <option value="member" <?php echo (isset($_COOKIE['remembered_role']) && $_COOKIE['remembered_role'] === 'member') ? 'selected' : ''; ?>>Member</option>
                         </select>
                         <div class="error-message" id="roleError"></div>
                     </div>
                     <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="rememberMe">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="remember"
+                               <?php echo isset($_COOKIE['remember_checked']) && $_COOKIE['remember_checked'] === 'true' ? 'checked' : ''; ?>>
                         <label class="form-check-label" for="rememberMe">Remember Me</label>
                     </div>
                     <button type="submit" class="btn btn-primary w-100">
@@ -130,15 +201,15 @@
     </div>
 
     <!-- Dashboard Page -->
-    <div id="dashboardPage" style="display: none;">
+    <div id="dashboardPage" style="display: <?php echo $isLoggedIn ? 'block' : 'none'; ?>">
         <nav class="navbar navbar-expand-lg navbar-light bg-light">
             <div class="container-fluid">
                 <a class="navbar-brand" href="#"><i class="fas fa-home"></i> Dashboard</a>
                 <div class="d-flex align-items-center">
-                    <span class="me-3">Selamat datang, <strong id="userDisplay"></strong></span>
-                    <button class="btn btn-danger" id="logoutBtn">
+                    <span class="me-3">Selamat datang, <strong><?php echo htmlspecialchars($username ?? ''); ?></strong></span>
+                    <a href="logout.php" class="btn btn-danger btn-sm" onclick="return confirm('Yakin ingin logout?')">
                         <i class="fas fa-sign-out-alt"></i> Logout
-                    </button>
+                    </a>
                 </div>
             </div>
         </nav>
@@ -150,8 +221,8 @@
                         <div class="card-body">
                             <h5 class="card-title"><i class="fas fa-user"></i> Informasi User</h5>
                             <hr>
-                            <p><strong>Username:</strong> <span id="dashUsername"></span></p>
-                            <p><strong>Role:</strong> <span id="dashRole" class="badge bg-primary"></span></p>
+                            <p><strong>Username:</strong> <?php echo htmlspecialchars($username ?? ''); ?></p>
+                            <p><strong>Role:</strong> <span class="badge bg-primary"><?php echo strtoupper($role ?? ''); ?></span></p>
                         </div>
                     </div>
                 </div>
@@ -161,9 +232,10 @@
                         <div class="card-body">
                             <h5 class="card-title"><i class="fas fa-upload"></i> Upload Gambar</h5>
                             <hr>
-                            <form id="uploadForm">
+                            <form id="uploadForm" enctype="multipart/form-data">
                                 <div class="mb-3">
-                                    <input type="file" class="form-control" id="imageUpload" accept="image/*">
+                                    <input type="file" class="form-control" id="imageUpload" name="image" accept="image/*">
+                                    <small class="text-muted">Format: JPG, PNG, GIF, WEBP (Max: 5MB)</small>
                                     <div class="error-message" id="uploadError"></div>
                                     <div class="success-message" id="uploadSuccess"></div>
                                 </div>
@@ -187,12 +259,16 @@
                     <div class="card dashboard-card">
                         <div class="card-body">
                             <h5 class="card-title">
-                                <i class="fas fa-images"></i> Gambar yang Diupload
+                                <i class="fas fa-images"></i> Galeri Gambar
+                                <span id="imageCount" class="badge bg-secondary ms-2">0</span>
                             </h5>
                             <hr>
                             <div id="imageGallery" class="d-flex flex-wrap gap-3">
                                 <div class="text-center w-100">
-                                    <p class="text-muted">Memuat gambar...</p>
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p class="text-muted mt-2">Memuat gambar...</p>
                                 </div>
                             </div>
                         </div>
@@ -202,126 +278,64 @@
         </div>
     </div>
 
+    <!-- Image Modal -->
+    <div id="imageModal" class="image-modal">
+        <span class="image-modal-close" onclick="closeImageModal()">&times;</span>
+        <img class="image-modal-content" id="modalImage">
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-cookie/3.0.5/js.cookie.min.js"></script>
     
     <script>
-        // Data user untuk validasi
-        const users = {
-            admin: { password: 'admin123', role: 'admin' },
-            member: { password: 'member123', role: 'member' }
-        };
+        const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
+        const currentRole = '<?php echo $role ?? ''; ?>';
 
-        // Cek cookies saat halaman dimuat
         $(document).ready(function() {
-            // Cek apakah ada session yang masih aktif
-            const loggedInUser = sessionStorage.getItem('loggedInUser');
-            const userRole = sessionStorage.getItem('userRole');
-            
-            if (loggedInUser && userRole) {
-                // Jika ada session aktif, langsung ke dashboard
-                showDashboard(loggedInUser, userRole);
-            } else {
-                // Jika tidak ada session, cek cookies remember me
-                const savedUser = Cookies.get('rememberedUser');
-                const savedRole = Cookies.get('rememberedRole');
-                const savedPassword = Cookies.get('rememberedPassword');
-                const rememberMeChecked = Cookies.get('rememberMeChecked');
-                
-                if (savedUser && savedRole) {
-                    $('#username').val(savedUser);
-                    $('#roleSelect').val(savedRole);
-                    
-                    if (savedPassword) {
-                        $('#password').val(savedPassword);
-                    }
-                    if (rememberMeChecked === 'true') {
-                        $('#rememberMe').prop('checked', true);
-                    }
-                }
+            if (isLoggedIn) {
+                showDashboard();
+                loadImages();
             }
         });
 
-        // Validasi Form Login dengan jQuery
+        // Login Form Handler
         $('#loginForm').on('submit', function(e) {
             e.preventDefault();
             
-            // Reset error messages
             $('.error-message').hide().text('');
             
-            const username = $('#username').val().trim();
-            const password = $('#password').val().trim();
-            const role = $('#roleSelect').val();
-            let isValid = true;
+            const formData = new FormData(this);
+            formData.append('remember', $('#rememberMe').is(':checked') ? 'true' : 'false');
 
-            // Validasi Username
-            if (username === '') {
-                $('#usernameError').text('Username tidak boleh kosong!').show();
-                isValid = false;
-            } else if (username.length < 3) {
-                $('#usernameError').text('Username minimal 3 karakter!').show();
-                isValid = false;
-            }
-
-            // Validasi Password
-            if (password === '') {
-                $('#passwordError').text('Password tidak boleh kosong!').show();
-                isValid = false;
-            } else if (password.length < 6) {
-                $('#passwordError').text('Password minimal 6 karakter!').show();
-                isValid = false;
-            }
-
-            // Validasi Role
-            if (role === '') {
-                $('#roleError').text('Pilih role terlebih dahulu!').show();
-                isValid = false;
-            }
-
-            if (!isValid) return;
-
-            // Cek kredensial user
-            if (users[username] && users[username].password === password && users[username].role === role) {
-                // Handle Remember Me dengan Cookies
-                if ($('#rememberMe').is(':checked')) {
-                    // Simpan ke cookies dengan masa berlaku 7 hari
-                    Cookies.set('rememberedUser', username, { expires: 7 });
-                    Cookies.set('rememberedRole', role, { expires: 7 });
-                    Cookies.set('rememberedPassword', password, { expires: 7 });
-                    Cookies.set('rememberMeChecked', 'true', { expires: 7 });
-                } else {
-                    // Hapus cookies jika remember me tidak dicentang
-                    Cookies.remove('rememberedUser');
-                    Cookies.remove('rememberedRole');
-                    Cookies.remove('rememberedPassword');
-                    Cookies.remove('rememberMeChecked');
+            $.ajax({
+                url: 'login.php',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        // Login berhasil, reload halaman
+                        window.location.reload();
+                    } else {
+                        // Tampilkan error
+                        $('#passwordError').text(response.message).show();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Login error:', error);
+                    $('#passwordError').text('Terjadi kesalahan saat login').show();
                 }
-
-                // Simpan session
-                sessionStorage.setItem('loggedInUser', username);
-                sessionStorage.setItem('userRole', role);
-
-                // Tampilkan dashboard
-                showDashboard(username, role);
-            } else {
-                $('#passwordError').text('Username, password, atau role salah!').show();
-            }
+            });
         });
 
-        // Fungsi menampilkan dashboard
-        function showDashboard(username, role) {
+        function showDashboard() {
             $('#loginPage').hide();
-            $('#dashboardPage').show();
-            $('#userDisplay').text(username);
-            $('#dashUsername').text(username);
-            $('#dashRole').text(role.toUpperCase());
-            
-            // Load gambar yang sudah ada
-            loadImages();
+            $('#dashboardPage').addClass('fade-in').show();
         }
 
-        // Validasi Form Upload dengan jQuery
+        // Upload Form Handler
         $('#uploadForm').on('submit', function(e) {
             e.preventDefault();
             
@@ -331,35 +345,23 @@
             $('#uploadError').hide().text('');
             $('#uploadSuccess').hide().text('');
 
-            // Validasi file
             if (!file) {
                 $('#uploadError').text('Pilih gambar terlebih dahulu!').show();
                 return;
             }
 
-            // Validasi tipe file
             if (!file.type.startsWith('image/')) {
                 $('#uploadError').text('File harus berupa gambar!').show();
                 return;
             }
 
-            // Validasi ukuran file (max 5MB)
             if (file.size > 5 * 1024 * 1024) {
                 $('#uploadError').text('Ukuran gambar maksimal 5MB!').show();
                 return;
             }
 
-            // Upload ke server
-            uploadToServer(file);
-        });
+            const formData = new FormData(this);
 
-        // Fungsi upload ke server
-        function uploadToServer(file) {
-            const formData = new FormData();
-            formData.append('image', file);
-            formData.append('username', sessionStorage.getItem('loggedInUser'));
-
-            // Tampilkan loading
             $('#uploadBtn').prop('disabled', true);
             $('#loadingSpinner').show();
 
@@ -369,6 +371,7 @@
                 data: formData,
                 processData: false,
                 contentType: false,
+                dataType: 'json',
                 success: function(response) {
                     $('#uploadBtn').prop('disabled', false);
                     $('#loadingSpinner').hide();
@@ -376,11 +379,8 @@
                     if (response.success) {
                         $('#uploadSuccess').text('Gambar berhasil diupload!').show();
                         $('#uploadForm')[0].reset();
-                        
-                        // Reload gambar
                         loadImages();
                         
-                        // Hide success message after 3 seconds
                         setTimeout(function() {
                             $('#uploadSuccess').fadeOut();
                         }, 3000);
@@ -388,15 +388,22 @@
                         $('#uploadError').text(response.message || 'Gagal mengupload gambar!').show();
                     }
                 },
-                error: function() {
+                error: function(xhr, status, error) {
                     $('#uploadBtn').prop('disabled', false);
                     $('#loadingSpinner').hide();
-                    $('#uploadError').text('Terjadi kesalahan saat mengupload!').show();
+                    console.error('Upload error:', error);
+                    
+                    if (xhr.status === 401) {
+                        alert('Session expired. Silakan login kembali.');
+                        window.location.reload();
+                    } else {
+                        $('#uploadError').text('Terjadi kesalahan saat mengupload!').show();
+                    }
                 }
             });
-        }
+        });
 
-        // Fungsi load gambar dari server
+        // Load Images
         function loadImages() {
             $.ajax({
                 url: 'get_images.php',
@@ -405,70 +412,79 @@
                 success: function(response) {
                     if (response.success) {
                         displayImages(response.images);
+                        $('#imageCount').text(response.total || 0);
                     } else {
                         $('#imageGallery').html('<p class="text-muted text-center w-100">Belum ada gambar yang diupload</p>');
+                        $('#imageCount').text('0');
                     }
                 },
-                error: function() {
-                    $('#imageGallery').html('<p class="text-danger text-center w-100">Gagal memuat gambar</p>');
+                error: function(xhr, status, error) {
+                    console.error('Load images error:', error);
+                    
+                    if (xhr.status === 401) {
+                        alert('Session expired. Silakan login kembali.');
+                        window.location.reload();
+                    } else {
+                        $('#imageGallery').html('<p class="text-danger text-center w-100">Gagal memuat gambar</p>');
+                        $('#imageCount').text('0');
+                    }
                 }
             });
         }
 
-        // Fungsi menampilkan gambar
+        // Display Images
         function displayImages(images) {
             const gallery = $('#imageGallery');
-            const currentRole = sessionStorage.getItem('userRole');
             gallery.empty();
             
             if (images && images.length > 0) {
                 images.forEach(function(image) {
-                    // Tampilkan username hanya untuk admin
                     let uploaderInfo = '';
-                    if (currentRole === 'admin') {
+                    if (currentRole === 'admin' && image.username) {
                         uploaderInfo = `<small class="text-muted">Uploader: <strong>${image.username}</strong></small><br>`;
                     }
                     
-                    // Tombol hapus hanya untuk admin
                     let deleteButton = '';
                     if (currentRole === 'admin') {
                         deleteButton = `
-                            <button class="remove-image" onclick="removeImage('${image.filename}')">
+                            <button class="remove-image" onclick="removeImage('${image.filename}')" title="Hapus gambar">
                                 <i class="fas fa-times"></i>
                             </button>
                         `;
                     }
                     
                     const imageHtml = `
-                        <div class="image-preview-container">
-                            <img src="uploads/${image.filename}" class="uploaded-image" style="max-width: 200px;" alt="${image.filename}">
+                        <div class="image-preview-container fade-in">
+                            <img src="uploads/${image.filename}" 
+                                 class="uploaded-image" 
+                                 alt="${image.original_name || image.filename}"
+                                 title="Klik untuk memperbesar"
+                                 onclick="openImageModal('uploads/${image.filename}')">
                             ${deleteButton}
-                            <div class="text-center mt-2">
+                            <div class="text-center mt-2" style="width: 200px; word-wrap: break-word;">
                                 ${uploaderInfo}
-                                <small class="text-muted">${image.original_name || image.filename}</small><br>
-                                <small class="text-muted">${image.upload_date}</small>
+                                <small class="text-muted d-block text-truncate" title="${image.original_name || image.filename}">
+                                    ${image.original_name || image.filename}
+                                </small>
+                                <small class="text-muted d-block">${image.upload_date}</small>
                             </div>
                         </div>
                     `;
                     gallery.append(imageHtml);
                 });
             } else {
-                gallery.html('<p class="text-muted text-center w-100">Belum ada gambar yang diupload</p>');
+                gallery.html('<p class="text-muted text-center w-100"><i class="fas fa-images fa-3x mb-3"></i><br>Belum ada gambar yang diupload</p>');
             }
         }
 
-        // Fungsi hapus gambar - Hanya untuk Admin
+        // Remove Image
         function removeImage(filename) {
-            // Cek role user
-            const currentRole = sessionStorage.getItem('userRole');
-            
-            // Jika bukan admin, tolak akses
             if (currentRole !== 'admin') {
                 alert('Akses ditolak! Hanya Admin yang dapat menghapus gambar.');
                 return;
             }
             
-            if (confirm('Hapus gambar ini?')) {
+            if (confirm('Yakin ingin menghapus gambar ini?')) {
                 $.ajax({
                     url: 'delete_image.php',
                     type: 'POST',
@@ -481,47 +497,39 @@
                             alert(response.message || 'Gagal menghapus gambar!');
                         }
                     },
-                    error: function() {
-                        alert('Terjadi kesalahan saat menghapus gambar!');
+                    error: function(xhr, status, error) {
+                        console.error('Delete error:', error);
+                        
+                        if (xhr.status === 401) {
+                            alert('Session expired. Silakan login kembali.');
+                            window.location.reload();
+                        } else {
+                            alert('Terjadi kesalahan saat menghapus gambar!');
+                        }
                     }
                 });
             }
         }
 
-        // Logout - Dengan Fitur Cookies Aktif
-        $('#logoutBtn').on('click', function() {
-            if (confirm('Apakah Anda yakin ingin logout?')) {
-                // Clear session storage
-                sessionStorage.clear();
-                
-                // Hide dashboard dan show login page
-                $('#dashboardPage').hide();
-                $('#loginPage').show();
-                
-                // Cek apakah remember me aktif
-                const rememberMeChecked = Cookies.get('rememberMeChecked');
-                const savedUser = Cookies.get('rememberedUser');
-                const savedRole = Cookies.get('rememberedRole');
-                const savedPassword = Cookies.get('rememberedPassword');
-                
-                if (rememberMeChecked === 'true' && savedUser && savedRole) {
-                    // Jika remember me aktif, isi kembali form dengan data cookies
-                    $('#username').val(savedUser);
-                    $('#roleSelect').val(savedRole);
-                    $('#rememberMe').prop('checked', true);
-                    
-                    if (savedPassword) $('#password').val(savedPassword);
-                } else {
-                    // hapus juga cookie password kalau remember tidak aktif
-                    Cookies.remove('rememberedPassword');
-                    $('#loginForm')[0].reset();
-                }
+        // Image Modal Functions
+        function openImageModal(imageSrc) {
+            $('#imageModal').fadeIn();
+            $('#modalImage').attr('src', imageSrc);
+        }
 
-                $('#imageGallery').html('<div class="text-center w-100"><p class="text-muted">Memuat gambar...</p></div>');
-                $('#uploadForm')[0].reset();
-                $('#uploadError').hide();
-                $('#uploadSuccess').hide();
-                $('.error-message').hide().text('');
+        function closeImageModal() {
+            $('#imageModal').fadeOut();
+        }
+
+        $('#imageModal').on('click', function(e) {
+            if (e.target.id === 'imageModal') {
+                closeImageModal();
+            }
+        });
+
+        $(document).on('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeImageModal();
             }
         });
     </script>
